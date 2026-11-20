@@ -80,20 +80,7 @@ class EmulationFragment : Fragment(), SurfaceHolder.Callback {
         val doneButton = binding.doneControlConfig
         doneButton?.setOnClickListener { stopConfiguringControls() }
 
-        if (inputOverlay != null) {
-            view.post {
-                val overlayX = inputOverlay!!.left
-                val overlayY = inputOverlay!!.top
-                inputOverlay?.setSurfacePosition(
-                    Rect(
-                        surfaceView.left - overlayX,
-                        surfaceView.top - overlayY,
-                        surfaceView.right - overlayX,
-                        surfaceView.bottom - overlayY
-                    )
-                )
-            }
-        }
+        view.post { updateOverlaySurfacePosition() }
     }
 
     override fun onDestroyView() {
@@ -101,11 +88,28 @@ class EmulationFragment : Fragment(), SurfaceHolder.Callback {
         _binding = null
     }
 
+    private fun updateOverlaySurfacePosition() {
+        val overlay = inputOverlay ?: return
+        val surfaceView = binding.surfaceEmulation
+
+        val overlayX = overlay.left
+        val overlayY = overlay.top
+        overlay.setSurfacePosition(
+            Rect(
+                surfaceView.left - overlayX,
+                surfaceView.top - overlayY,
+                surfaceView.right - overlayX,
+                surfaceView.bottom - overlayY
+            )
+        )
+    }
+
     override fun onResume() {
         super.onResume()
         if (NativeLibrary.IsGameMetadataValid()) {
             inputOverlay?.refreshControls()
         }
+        updateSurfaceLayout()
 
         AfterDirectoryInitializationRunner().runWithLifecycle(this) {
             run(emulationActivity!!.isActivityRecreated)
@@ -136,11 +140,20 @@ class EmulationFragment : Fragment(), SurfaceHolder.Callback {
         )
 
         inputOverlay?.refreshControls()
+        updateSurfaceLayout()
     }
 
     fun initInputPointer() = inputOverlay?.initTouchPointer()
 
-    fun refreshInputOverlay() = inputOverlay?.refreshControls()
+    fun refreshInputOverlay() {
+        inputOverlay?.refreshControls()
+        updateSurfaceLayout()
+    }
+
+    private fun updateSurfaceLayout() {
+        val showOverlay = BooleanSetting.MAIN_SHOW_INPUT_OVERLAY.boolean
+        binding?.overlaySpacer?.visibility = if (showOverlay) View.VISIBLE else View.GONE
+    }
 
     fun refreshOverlayPointer() = inputOverlay?.refreshOverlayPointer()
 
@@ -154,6 +167,7 @@ class EmulationFragment : Fragment(), SurfaceHolder.Callback {
     override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {
         Log.debug("[EmulationFragment] Surface changed. Resolution: $width x $height")
         NativeLibrary.SurfaceChanged(holder.surface)
+        updateOverlaySurfacePosition()
         if (runWhenSurfaceIsValid) {
             runWithValidSurface()
         }
