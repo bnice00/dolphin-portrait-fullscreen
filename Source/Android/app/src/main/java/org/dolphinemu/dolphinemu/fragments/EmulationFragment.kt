@@ -151,7 +151,8 @@ class EmulationFragment : Fragment(), SurfaceHolder.Callback {
     }
 
     private fun updateSurfaceLayout() {
-        val showOverlay = BooleanSetting.MAIN_SHOW_INPUT_OVERLAY.boolean
+        val showOverlay = BooleanSetting.MAIN_SHOW_INPUT_OVERLAY.boolean &&
+            InputOverlay.configuredControllerType != InputOverlay.OVERLAY_NONE
         binding?.overlaySpacer?.visibility = if (showOverlay) View.VISIBLE else View.GONE
     }
 
